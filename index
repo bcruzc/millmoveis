@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulário de Orçamento - Marcenaria</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-4">
+  <h2>Formulário de Orçamento para Marcenaria</h2>
+  <form id="quote-form">
+    <div class="form-group">
+      <label for="project-name">Nome do Projeto:</label>
+      <input type="text" class="form-control" id="project-name" name="project-name" required>
+    </div>
+    <div class="form-group">
+      <label for="client-name">Cliente:</label>
+      <input type="text" class="form-control" id="client-name" name="client-name" required>
+    </div>
+    <div class="form-group">
+      <label for="architect-name">Arquiteto:</label>
+      <input type="text" class="form-control" id="architect-name" name="architect-name" required>
+    </div>
+    <div id="environments"></div>
+    <button type="button" id="add-environment" class="btn btn-info mt-3">Novo Ambiente</button>
+    <button type="submit" class="btn btn-success mt-3">Gerar Orçamento</button>
+  </form>
+</div>
+
+<script>
+const publicSpreadsheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRH7uZxsLBCTjqTfZpe1uOJO2KrEA5AXauvpNthn7o7fWPXYo_FPTyqHSbq_5pG6BvCrajYGlmMqjAS/pub?output=csv';
+
+function fetchProducts() {
+  fetch(publicSpreadsheetUrl)
+    .then(response => response.text())
+    .then(csvText => {
+      const products = csvToProductsArray(csvText);
+      window.products = products;
+      addEnvironment(); // Automatically adds the first environment for convenience
+    })
+    .catch(error => console.error('Error fetching data:', error));
+}
+
+function csvToProductsArray(str) {
+  const rows = str.split("\n").slice(1); // Skip header row
+  const products = rows.map(row => {
+    const columns = row.split(",");
+    return {
+      id: columns[0], // Assuming the first column is the product ID
+      name: columns[1], // Assuming the second column is the product name
+      finishes: columns[2] ? columns[2].split(';') : [] // Finishes are in the third column, split by semicolon
+    };
+  });
+  return products.filter(product => product.name); // Filter out any empty rows
+}
+
+document.getElementById('add-environment').addEventListener('click', addEnvironment);
+document.getElementById('quote-form').addEventListener('submit', handleSubmit);
+
+function addEnvironment() {
+  const environmentsDiv = document.getElementById('environments');
+  const environmentDiv = document.createElement('div');
+  environmentDiv.classList.add('environment-entry', 'mt-3');
+  environmentDiv.innerHTML = `
+    <div class="form-group">
+      <label>Nome do Ambiente:</label>
+      <input type="text" class="form-control environment-name" required>
+    </div>
+    <div class="product-list"></div>
+    <button type="button" class="btn btn-primary add-product">Adicionar Produto</button>
+  `;
+  environmentsDiv.appendChild(environmentDiv);
+
+  environmentDiv.querySelector('.add-product').addEventListener('click', function() {
+    addProductEntry(this.previousElementSibling);
+  });
+}
+
+function addProductEntry(productListDiv) {
+  const productEntryDiv = document.createElement('div');
+  productEntryDiv.classList.add('product-entry', 'form-row', 'align-items-center', 'mb-3');
+  productEntryDiv.innerHTML = `
+    <div class="col">
+      <select class="form-control product-dropdown">
+        <option value="">Selecione um produto</option>
+        ${window.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="col">
+      <input type="number" class="form-control product-height" placeholder="Altura">
+    </div>
+    <div class="col">
+      <input type="number" class="form-control product-width" placeholder="Largura">
+    </div>
+    <div class="col">
+      <input type="number" class="form-control product-depth" placeholder="Profundidade">
+    </div>
+    <div class="col">
+      <select class="form-control product-finish">
+        <option value="">Selecione um acabamento</option>
+      </select>
+    </div>
+  `;
+  productListDiv.appendChild(productEntryDiv);
+
+  const productDropdown = productEntryDiv.querySelector('.product-dropdown');
+  const finishDropdown = productEntryDiv.querySelector('.product-finish');
+
+  productDropdown.addEventListener('change', function() {
+    const selectedProductId = this.value;
+    const selectedProduct = window.products.find(p => p.id === selectedProductId);
+    if (selectedProduct) {
+      finishDropdown.innerHTML = '<option value="">Selecione um acabamento</option>' + selectedProduct.finishes.map(finish => `<option>${finish}</option>`).join('');
+    } else {
+      finishDropdown.innerHTML = '<option value="">Selecione um produto primeiro</option>';
+    }
+  });
+}
+
+function handleSubmit(event) {
+  event.preventDefault();
+  // Collect and process form data...
+  // Similar to the previous implementation
+}
+
+fetchProducts();
+</script>
+
+<!-- Bootstrap JS, Popper.js, e jQuery -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
